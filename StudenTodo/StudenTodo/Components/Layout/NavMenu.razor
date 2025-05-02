@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
@@ -27,6 +27,24 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="time">
+                <span class="bi bi-clock-fill-nav-menu" aria-hidden="true"></span> Affichage Heure
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="name">
+                <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Saisie Nom
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="todo">
+                <span class="bi bi-list-check-nav-menu" aria-hidden="true"></span> Liste des Tâches
             </NavLink>
         </div>
 

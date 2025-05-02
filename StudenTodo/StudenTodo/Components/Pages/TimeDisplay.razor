@@ -1,0 +1,72 @@
+@page "/time"
+@* Définit la route URL pour accéder à ce composant *@
+@rendermode InteractiveServer
+@* IMPORTANT: Définit que ce composant utilise le mode de rendu interactif côté serveur dans .NET 8 *@
+@using Microsoft.AspNetCore.Components.Web
+@* Nous n'avons plus besoin d'implémenter IDisposable puisque nous n'utilisons plus de timer *@
+
+<PageTitle>Affichage de l'heure</PageTitle>
+
+<h1>Affichage de l'heure</h1>
+
+@* Début de la carte (card) pour l'affichage de l'heure *@
+<div class="card">
+    <div class="card-header">
+        <h3>Heure actuelle du serveur</h3>
+    </div>
+    <div class="card-body">
+        @* Affichage de l'heure et de la date actuelles avec formatage *@
+        <h2 class="display-4">@currentTime.ToString("HH:mm:ss")</h2>
+        <p class="text-muted">Date: @currentTime.ToString("dd/MM/yyyy")</p>
+        
+        @* Bouton pour rafraîchir manuellement l'heure *@
+        @* Utilisation de la syntaxe lambda @(() => Method()) pour l'événement onclick *@
+        <button class="btn btn-primary mt-3" @onclick="@(() => RefreshTime())">
+            <span class="bi bi-arrow-clockwise"></span> Rafraîchir
+        </button>
+    </div>
+</div>
+
+
+
+@* Section C# du composant Blazor *@
+@code {
+    // Variable d'état du composant
+    private DateTime currentTime = DateTime.Now;
+    
+    // Note : Nous n'utilisons pas de timer car l'heure est mise à jour manuellement par le bouton Rafraîchir
+
+    // Méthode du cycle de vie: appelée quand le composant est initialisé
+    // POINT IMPORTANT: OnInitialized est appelé AVANT le premier rendu
+    protected override void OnInitialized()
+    {
+        // Initialiser l'heure actuelle
+        currentTime = DateTime.Now;
+        // Note: Ne pas créer le timer ici car c'est trop tôt dans le cycle de vie
+    }
+
+    // Méthode du cycle de vie: appelée APRÈS chaque rendu du composant
+    // POINT IMPORTANT: firstRender est true uniquement lors du premier rendu du composant
+    // Le hook OnAfterRender n'est plus utilisé pour initialiser un timer
+    // puisque l'heure doit être mise à jour uniquement manuellement via le bouton
+    protected override void OnAfterRender(bool firstRender)
+    {
+        // Ne fait rien - Pas de mise à jour automatique
+        // L'horloge ne se mettra à jour que lorsque l'utilisateur clique sur le bouton Rafraîchir
+    }
+
+    // Méthode pour rafraîchir l'heure manuellement (appelée par le bouton)
+    private void RefreshTime()
+    {
+        // Mettre à jour l'heure
+        currentTime = DateTime.Now;
+        
+        // POINT IMPORTANT: Dans un événement UI comme @onclick, Blazor appelle déjà le code sur le thread UI
+        // et appelle automatiquement StateHasChanged après l'exécution de l'événement
+        // Mais l'appeler explicitement est une bonne pratique pour être clair sur l'intention
+        StateHasChanged();
+    }
+
+    // Note: Nous avons supprimé l'implémentation de IDisposable et la méthode Dispose()
+    // puisque nous n'utilisons plus de ressources qui nécessitent d'être libérées explicitement
+}

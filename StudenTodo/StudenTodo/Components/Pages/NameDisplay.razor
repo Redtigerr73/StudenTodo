@@ -1,0 +1,89 @@
+@page "/name"
+@* Définit la route pour accéder à ce composant *@
+@rendermode InteractiveServer
+@* IMPORTANT: Spécifie que le composant est interactif côté serveur dans .NET 8 *@
+@using Microsoft.AspNetCore.Components.Web
+
+<PageTitle>Saisie du Nom</PageTitle>
+
+<h1>Saisie et Affichage du Nom</h1>
+
+@* Carte principale pour la saisie du nom *@
+<div class="card">
+    <div class="card-header">
+        <h3>Bienvenue sur StudenTodo</h3>
+    </div>
+    <div class="card-body">
+        <div class="form-group">
+            <label for="nameInput">Votre nom:</label>
+            @* POINT IMPORTANT: Data binding bidirectionnel avec mise à jour en temps réel *@
+            @* @bind lie la valeur de l'input à la propriété UserName *@
+            @* @bind:event="oninput" permet la mise à jour en temps réel pendant la saisie *@
+            @* au lieu d'attendre que l'utilisateur quitte le champ (onchange par défaut) *@
+            <input id="nameInput" class="form-control" @bind="UserName" @bind:event="oninput" />
+        </div>
+        
+        @* Affichage conditionnel basé sur l'état du composant *@
+        @* Ce bloc ne s'affiche que si la propriété UserName n'est pas vide *@
+        @if (!string.IsNullOrWhiteSpace(UserName))
+        {
+            <div class="alert alert-success mt-3">
+                @* Utilisation de l'interpolation de variable avec @ *@
+                Bonjour, <strong>@UserName</strong> ! Bienvenue dans notre application de gestion de tâches.
+            </div>
+        }
+        
+        @* Boutons avec gestionnaires d'événements *@
+        <div class="mt-3">
+            @* POINT IMPORTANT: @onclick permet de lier un événement de clic à une méthode C# *@
+            <button class="btn btn-outline-primary" @onclick="ClearName">Effacer</button>
+            <button class="btn btn-success ml-2" @onclick="SaveName">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+@* EXEMPLE: Autre affichage conditionnel qui dépend d'une variable d'état différente *@
+@* Démontre comment le composant peut maintenir plusieurs variables d'état indépendantes *@
+@if (!string.IsNullOrWhiteSpace(savedName))
+{
+    <div class="card mt-3">
+        <div class="card-header bg-info text-white">
+            <h3>Nom enregistré</h3>
+        </div>
+        <div class="card-body">
+            <p>Le dernier nom enregistré est: <strong>@savedName</strong></p>
+        </div>
+    </div>
+}
+
+@* Section code C# du composant *@
+@code {
+    // POINT IMPORTANT: En Blazor, les propriétés avec { get; set; } sont recommandées pour le data binding
+    private string UserName { get; set; } = "";
+    
+    // Variable d'état simple pour stocker le nom sauvegardé
+    private string savedName = "";
+    
+    // POINT IMPORTANT: Méthode appelée par un gestionnaire d'événement (@onclick)
+    // Quand l'utilisateur clique sur le bouton Effacer
+    private void ClearName()
+    {
+        // Modifie la valeur de UserName, ce qui déclenchera un rendu automatiquement
+        UserName = "";
+        // REMARQUE: pas besoin d'appeler StateHasChanged() explicitement car:
+        // 1. La méthode est appelée par un événement UI (@onclick)
+        // 2. Blazor détecte le changement de l'état et déclenche automatiquement un rendu
+    }
+    
+    // Méthode pour enregistrer le nom actuel dans la variable savedName
+    private void SaveName()
+    {
+        // Vérification que le nom n'est pas vide avant de l'enregistrer
+        if (!string.IsNullOrWhiteSpace(UserName))
+        {
+            // Copie UserName dans savedName, ce qui déclenchera le rendu conditionnel plus haut
+            savedName = UserName;
+            // REMARQUE: Blazor détecte automatiquement ce changement d'état et met à jour l'UI
+        }
+    }
+}

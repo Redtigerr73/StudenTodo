@@ -1,0 +1,230 @@
+@page "/todo"
+@* Définit la route pour accéder à ce composant *@
+@rendermode InteractiveServer
+@* IMPORTANT: Alternative à l'attribut [RenderModeInteractiveServer] - Les deux sont équivalents *@
+
+@* Importations d'espaces de noms nécessaires *@
+@using System.Text.Json @* Utilisé pour la sérialisation/désérialisation JSON *@
+@using Microsoft.JSInterop @* Permet l'interopérabilité avec JavaScript *@
+
+@* POINT IMPORTANT: Injection de dépendance - Permet d'accéder au runtime JavaScript *@
+@* C'est une technique clé de .NET pour l'inversion de contrôle (IOC) *@
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Gestion des tâches</PageTitle>
+
+<h1>Liste des tâches à faire</h1>
+
+@* STRUCTURE: Utilisation d'une disposition en grille Bootstrap *@
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3>Ajouter une tâche</h3>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="taskTitle">Titre de la tâche:</label>
+                    @* POINTS IMPORTANTS: 
+                    1. @bind pour la liaison de données bidirectionnelle
+                    2. @bind:event="oninput" pour mettre à jour en temps réel
+                    3. @onkeydown pour capturer les événements clavier (ici pour permettre de valider avec Entrée)
+                    *@
+                    <input id="taskTitle" class="form-control" @bind="newTaskTitle" @bind:event="oninput" @onkeydown="@HandleKeyDown" />
+                </div>
+                
+                <div class="form-group mt-3">
+                    <label for="taskPriority">Priorité:</label>
+                    @* Exemple de liaison sur un élément select avec plusieurs options *@
+                    <select id="taskPriority" class="form-select" @bind="newTaskPriority">
+                        <option value="Basse">Basse</option>
+                        <option value="Normale">Normale</option>
+                        <option value="Haute">Haute</option>
+                    </select>
+                </div>
+                
+                @* POINT IMPORTANT: Bouton avec attribut disabled conditionnel
+                L'expression @(string.IsNullOrWhiteSpace(newTaskTitle)) est évaluée pour désactiver le bouton
+                si le titre de la tâche est vide *@
+                <button class="btn btn-primary mt-3" @onclick="AddTask" disabled="@(string.IsNullOrWhiteSpace(newTaskTitle))">
+                    <span class="bi bi-plus-circle"></span> Ajouter
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    @* Affichage dynamique du nombre de tâches - démontre la réactivité *@
+                    <h3>Mes tâches (@tasks.Count)</h3>
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="SaveTasks">
+                        <span class="bi bi-save"></span> Sauvegarder
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                @* POINT IMPORTANT: Rendu conditionnel - différent contenu selon l'état des données *@
+                @if (!tasks.Any())
+                {
+                    <div class="alert alert-info">
+                        Aucune tâche pour le moment. Ajoutez-en une !
+                    </div>
+                }
+                else
+                {
+                    <ul class="list-group">
+                        @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
+                        À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
+                        @foreach (var task in tasks)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
+                                <div class="form-check">
+                                    @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
+                                    <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
+                                    @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
+                                    <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")" for="@($"task-{task.Id}")">
+                                        @task.Title
+                                    </label>
+                                </div>
+                                <div>
+                                    <span class="badge bg-primary">@task.Priority</span>
+                                    @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
+                                    <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
+                                        <span class="bi bi-trash"></span>
+                                    </button>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Collection des tâches - c'est l'état principal du composant
+    private List<TodoItem> tasks = new();
+    // Variables pour stocker les données du formulaire
+    private string newTaskTitle = "";
+    private string newTaskPriority = "Normale";
+    
+    // POINT IMPORTANT: Méthode asynchrone du cycle de vie exécutée après chaque rendu
+    // La version asynchrone de OnAfterRender permet d'utiliser await pour des opérations asynchrones
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // firstRender = true seulement lors du premier rendu du composant
+        if (firstRender)
+        {
+            // Charger les tâches depuis le localStorage du navigateur lors du premier rendu
+            await LoadTasksFromLocalStorage();
+        }
+    }
+    
+    // POINT IMPORTANT: Gestion des événements clavier
+    // KeyboardEventArgs contient les informations sur l'événement clavier
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        // Vérifier si la touche Entrée a été pressée et si un titre est saisi
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(newTaskTitle))
+        {
+            // Appel de la méthode d'ajout de tâche, comme si on avait cliqué sur le bouton
+            await AddTask();
+        }
+    }
+    
+    // POINT IMPORTANT: Méthode asynchrone pour ajouter une tâche
+    // Les méthodes appelées par des événements peuvent être asynchrones dans Blazor
+    private async Task AddTask()
+    {
+        if (!string.IsNullOrWhiteSpace(newTaskTitle))
+        {
+            // Création d'un nouvel objet TodoItem avec les valeurs du formulaire
+            tasks.Add(new TodoItem
+            {
+                Id = Guid.NewGuid(),  // Génération d'un ID unique pour chaque tâche
+                Title = newTaskTitle,
+                Priority = newTaskPriority,
+                IsCompleted = false,
+                CreatedAt = DateTime.Now
+            });
+            
+            // Réinitialisation du champ de titre après ajout
+            newTaskTitle = ""; 
+            // Sauvegarde immédiate des tâches dans le localStorage
+            await SaveTasksToLocalStorage();
+            // REMARQUE: Blazor détecte automatiquement les modifications et met à jour l'UI
+        }
+    }
+    
+    // Méthode pour supprimer une tâche spécifique
+    private async Task RemoveTask(TodoItem task)
+    {
+        // Suppression de la tâche de la liste
+        tasks.Remove(task);
+        // Sauvegarde des modifications
+        await SaveTasksToLocalStorage();
+    }
+    
+    // POINT IMPORTANT: Méthode qui retourne une classe CSS différente selon la priorité
+    // Montre l'utilisation de l'expression switch pour simplifier les conditions
+    private string GetPriorityClass(string priority)
+    {
+        // Syntaxe C# moderne avec expression switch
+        return priority switch
+        {
+            "Haute" => "border-start border-danger border-5",
+            "Normale" => "border-start border-warning border-5",
+            "Basse" => "border-start border-info border-5",
+            _ => ""  // Cas par défaut (underscore)
+        };
+    }
+    
+    // Méthode liée au bouton de sauvegarde explicite
+    private async Task SaveTasks()
+    {
+        // Sauvegarde dans le localStorage
+        await SaveTasksToLocalStorage();
+        // POINT IMPORTANT: Utilisation de JSInterop pour appeler une fonction JavaScript native
+        // Affiche une boîte de dialogue d'alerte côté client
+        await JSRuntime.InvokeVoidAsync("alert", "Vos tâches ont été sauvegardées avec succès !");
+    }
+    
+    // POINT IMPORTANT: Méthode pour sauvegarder les données côté client avec JSInterop
+    // JSInterop permet à Blazor de communiquer avec JavaScript pour des fonctionnalités non disponibles en .NET
+    private async Task SaveTasksToLocalStorage()
+    {
+        // Sérialisation de la liste des tâches en JSON
+        var json = JsonSerializer.Serialize(tasks);
+        // Appel de l'API localStorage du navigateur via JSInterop
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "studentodo_tasks", json);
+    }
+    
+    // Méthode pour charger les données depuis le localStorage
+    private async Task LoadTasksFromLocalStorage()
+    {
+        // Récupération des données JSON depuis le localStorage
+        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
+        
+        // Vérification que des données existent
+        if (!string.IsNullOrEmpty(json))
+        {
+            // Désérialisation du JSON en liste d'objets TodoItem
+            // L'opérateur ?? fournit une valeur par défaut (nouvelle liste vide) si la désérialisation échoue
+            tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
+        }
+    }
+    
+    // POINT IMPORTANT: Classe interne pour encapsuler les données d'une tâche
+    // Utiliser une classe bien définie facilite la manipulation des données et la sérialisation
+    private class TodoItem
+    {
+        public Guid Id { get; set; }  // Identifiant unique
+        public string Title { get; set; } = "";
+        public string Priority { get; set; } = "Normale";
+        public bool IsCompleted { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+}
