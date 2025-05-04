@@ -1,5 +1,6 @@
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    position: relative;
 }
 
 a, .btn-link {
@@ -48,4 +49,58 @@ h1:focus {
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
+}
+
+/* Styles pour les éléments PWA */
+.offline-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #f8d7da;
+    color: #721c24;
+    text-align: center;
+    padding: 0.5rem;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    animation: slideDown 0.3s ease-in-out;
+}
+
+@keyframes slideDown {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(0); }
+}
+
+/* Styles pour le bouton d'installation PWA */
+#pwa-install-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #03173d;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+#pwa-install-button:hover {
+    background-color: #052b6e;
+    transform: translateY(-2px);
+}
+
+#pwa-install-button:active {
+    transform: translateY(0);
+}
+
+/* Styles pour la notification de mise à jour */
+#pwa-update-available {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

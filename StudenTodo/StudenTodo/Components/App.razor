@@ -1,20 +1,68 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
+
+<!-- 
+    IMPLÉMENTATION PWA DANS UNE APPLICATION BLAZOR
+    ------------------------------------------
+    Cette implémentation PWA est réalisée dans le projet serveur plutôt que dans le projet client pour plusieurs raisons :
+    1. Accès direct aux ressources statiques : les fichiers sont servis directement par le serveur web sans préfixe _content/
+    2. Compatibilité avec la navigation : évite les problèmes de routage entre les composants serveur et client
+    3. Installation simplifiée : toutes les ressources sont disponibles au même endroit, facilitant le processus d'installation
+    4. Performances optimisées : accès direct aux fichiers requis pour la mise en cache du service worker
+-->
 
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <base href="/" />
     <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="StudenTodo.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
+    
+    <!-- Méta-balises pour la PWA - implémentées côté serveur pour un accès direct -->
+    <link href="manifest.json" rel="manifest" />
+    <meta name="theme-color" content="#03173d" />
+    
+    <!-- Méta-balises pour iOS - assurent la compatibilité avec les appareils Apple -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png" />
+    
+    <!-- Scripts PWA - chargés directement depuis le projet serveur pour éviter les problèmes de chemin d'accès -->
+    <script src="js/pwa-install.js"></script>
+    <script src="js/pwa-updater.js"></script>
+    <script src="js/pwa-debug.js"></script>
+    <script src="js/network-status.js"></script>
+    
     <HeadOutlet />
 </head>
 
 <body>
+    <!-- Notification hors ligne qui s'affichera automatiquement quand l'utilisateur est hors ligne -->
+    <div id="offline-notification" style="display: none;" class="offline-indicator">
+        Vous êtes actuellement hors ligne. Certaines fonctionnalités peuvent être limitées.
+    </div>
+    
     <Routes />
     <script src="_framework/blazor.web.js"></script>
+    
+    <!-- Script d'enregistrement du service worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(registration => {
+                    console.log('Service Worker enregistré avec succès:', registration);
+                })
+                .catch(error => {
+                    console.error('Échec de l\'enregistrement du Service Worker:', error);
+                });
+        }
+    </script>
+    
+    <!-- Script de diagnostic visuel PWA -->
+    <script src="_content/StudenTodo.Client/js/pwa-diag-visual.js"></script>
 </body>
 
 </html>

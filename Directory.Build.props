@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- En cas de problème avec l'emplacement de NuGet, décommenter la ligne suivante -->
+    <!--<RestorePackagesPath>$(MSBuildThisFileDirectory)packages</RestorePackagesPath>-->
+  </PropertyGroup>
+</Project>

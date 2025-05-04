@@ -6,21 +6,22 @@
     <Nullable>enable</Nullable>
     <NoDefaultLaunchSettingsFile>true</NoDefaultLaunchSettingsFile>
     <StaticWebAssetProjectMode>Default</StaticWebAssetProjectMode>
-    <!-- Activation du mode PWA pour le projet -->
-    <ServiceWorkerAssetsManifest>service-worker-assets.js</ServiceWorkerAssetsManifest>
+    <BlazorWebAssemblyEnableLinking>false</BlazorWebAssemblyEnableLinking>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Authentication" Version="8.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.13" PrivateAssets="all" />
-    <!-- Package pour le support PWA -->
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.ServiceWorkerAssetsManifest" Version="8.0.13" />
   </ItemGroup>
   
-  <!-- Configuration spéciale pour inclure les fichiers du service worker dans la sortie de la compilation -->
   <ItemGroup>
-    <ServiceWorker Include="wwwroot\service-worker.js" PublishedContent="wwwroot\service-worker.published.js" />
+    <Content Remove="wwwroot\manifest.json" />
+    <Content Remove="wwwroot\service-worker.js" />
+    <Content Remove="wwwroot\service-worker.published.js" />
+    <Content Remove="wwwroot\icons\**" />
+    <Content Remove="wwwroot\js\pwa-*.js" />
+    <Content Remove="wwwroot\js\network-status.js" />
   </ItemGroup>
 
 </Project>

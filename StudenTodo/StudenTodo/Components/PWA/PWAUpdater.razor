@@ -1,0 +1,84 @@
+@*
+    PWAUpdater.razor
+    --------------
+    Ce composant gère le cycle de vie du service worker et les mises à jour de l'application PWA.
+    Il est implémenté dans le projet serveur pour :
+    1. Contrôle central : gère le service worker depuis un point unique dans l'application
+    2. Intégration UI : affiche les notifications de mise à jour directement dans l'interface principale
+    3. Efficacité opérationnelle : accède directement aux API du navigateur sans passer par des couches intermédiaires
+    
+    Fonctionnement :
+    - Surveille les mises à jour du service worker via les événements "updatefound" et "controllerchange"
+    - Affiche une notification lorsqu'une mise à jour est disponible
+    - Permet à l'utilisateur d'appliquer la mise à jour immédiatement via un bouton dédié
+    - Inclut un diagnostic PWA en mode développement pour faciliter le débogage
+*@
+
+@using Microsoft.JSInterop
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div id="pwa-update-available" style="display: none; position: fixed; bottom: 20px; right: 20px; background: #03173d; color: white; padding: 15px; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 100;">
+    <p style="margin: 0 0 10px 0;">Une mise à jour est disponible</p>
+    <button id="pwa-update-button" class="btn btn-light">Mettre à jour</button>
+</div>
+
+<div id="pwa-install-container" style="display: none; position: fixed; bottom: 20px; left: 20px; z-index: 100;">
+    <button id="pwa-install-button" class="btn btn-primary">
+        <i class="bi bi-download"></i> Installer l'application
+    </button>
+</div>
+
+@code {
+    /// <summary>
+    /// Composant responsable de la gestion du service worker et des installations de la PWA.
+    /// </summary>
+    
+    private IJSObjectReference? _updaterModule;
+    private IJSObjectReference? _installModule;
+    private IJSObjectReference? _debugModule;
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Chargement des modules JS pour la PWA
+                _updaterModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pwa-updater.js");
+                _installModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pwa-install.js");
+                
+                // En mode développement, charger aussi le module de diagnostic
+#if DEBUG
+                _debugModule = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pwa-debug.js");
+                await JSRuntime.InvokeVoidAsync("pwaDiagnostic.runChecks");
+#endif
+                
+                // Démarrer la vérification des mises à jour
+                await JSRuntime.InvokeVoidAsync("checkForUpdates");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Erreur lors de l'initialisation des modules PWA: {ex.Message}");
+            }
+        }
+    }
+    
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_updaterModule is not null)
+        {
+            await _updaterModule.DisposeAsync();
+        }
+        
+        if (_installModule is not null)
+        {
+            await _installModule.DisposeAsync();
+        }
+        
+        if (_debugModule is not null)
+        {
+            await _debugModule.DisposeAsync();
+        }
+    }
+}

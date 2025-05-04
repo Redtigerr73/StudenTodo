@@ -1,0 +1,36 @@
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+@if (!isOnline)
+{
+    <div class="offline-indicator">
+        Vous êtes actuellement hors ligne. Certaines fonctionnalités peuvent être limitées.
+    </div>
+}
+
+@code {
+    private bool isOnline = true;
+    private DotNetObjectReference<NetworkStatusComponent>? objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("networkStatus.initialize", objRef);
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateOnlineStatus(bool status)
+    {
+        isOnline = status;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        JSRuntime.InvokeVoidAsync("networkStatus.dispose", objRef);
+        objRef?.Dispose();
+    }
+}

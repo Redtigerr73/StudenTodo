@@ -1,0 +1,125 @@
+@*
+    PWAInstaller.razor
+    ----------------
+    Ce composant gère l'installation manuelle de la PWA. Il est implémenté dans le projet serveur pour plusieurs raisons :
+    1. Accès direct au DOM : le composant peut interagir directement avec les API d'installation du navigateur
+    2. Visibilité garantie : étant dans le projet principal, il est toujours affiché même si les ressources client ne sont pas chargées
+    3. Intégration avec l'UI principale : le design est cohérent avec le reste de l'application
+    
+    Fonctionnalités :
+    - Affiche un bouton d'installation uniquement lorsque l'application est installable
+    - Gère l'interaction avec l'API beforeinstallprompt du navigateur
+    - Supporte les appareils iOS avec des instructions spécifiques
+*@
+
+@inject IJSRuntime JSRuntime
+@implements IAsyncDisposable
+
+<div class="pwa-installer @(ShowButton ? "visible" : "hidden")">
+    <button class="install-button" @onclick="TriggerInstall">
+        <span class="icon">📱</span> Installer l'application
+    </button>
+</div>
+
+<style>
+    .pwa-installer {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #03173d;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        z-index: 1000;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .pwa-installer.hidden {
+        transform: translate(-50%, 100px);
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .pwa-installer.visible {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+
+    .install-button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        padding: 0;
+    }
+
+    .icon {
+        margin-right: 8px;
+        font-size: 20px;
+    }
+</style>
+
+@code {
+    private bool ShowButton { get; set; } = false;
+    private IJSObjectReference? _module;
+    private DotNetObjectReference<PWAInstaller>? _objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            
+            try
+            {
+                _module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/pwa-force-install.js");
+                await _module.InvokeVoidAsync("initInstallDetection", _objRef);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Erreur lors de l'initialisation du module PWA Installer: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateInstallButtonVisibility(bool canInstall)
+    {
+        ShowButton = canInstall;
+        StateHasChanged();
+    }
+
+    private async Task TriggerInstall()
+    {
+        if (_module != null)
+        {
+            try
+            {
+                await _module.InvokeVoidAsync("triggerInstall");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"Erreur lors du déclenchement de l'installation: {ex.Message}");
+            }
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        if (_module != null)
+        {
+            await _module.DisposeAsync();
+        }
+        
+        _objRef?.Dispose();
+    }
+}

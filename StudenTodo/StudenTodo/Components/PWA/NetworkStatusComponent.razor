@@ -1,0 +1,51 @@
+@*
+    NetworkStatusComponent.razor
+    -------------------------
+    Ce composant surveille l'état de connexion réseau et affiche une notification lorsque l'utilisateur est hors ligne.
+    Il est implémenté dans le projet serveur pour :
+    1. Intégration cohérente : s'intègre naturellement avec les autres composants de l'interface utilisateur
+    2. Détection fiable : utilise les API navigateur pour détecter précisément les changements de connectivité
+    3. Expérience utilisateur améliorée : informe l'utilisateur immédiatement des problèmes de connectivité
+    
+    Fonctionnement :
+    - Utilise les événements "online" et "offline" du navigateur via interop JavaScript
+    - Met à jour l'état du composant via JSInterop lorsque l'état de la connexion change
+    - Implémente IDisposable pour nettoyer les ressources JavaScript lors de la suppression du composant
+*@
+
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+@if (!isOnline)
+{
+    <div class="offline-indicator">
+        Vous êtes actuellement hors ligne. Certaines fonctionnalités peuvent être limitées.
+    </div>
+}
+
+@code {
+    private bool isOnline = true;
+    private DotNetObjectReference<NetworkStatusComponent>? objRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("networkStatus.initialize", objRef);
+        }
+    }
+
+    [JSInvokable]
+    public void UpdateOnlineStatus(bool status)
+    {
+        isOnline = status;
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        JSRuntime.InvokeVoidAsync("networkStatus.dispose", objRef);
+        objRef?.Dispose();
+    }
+}
