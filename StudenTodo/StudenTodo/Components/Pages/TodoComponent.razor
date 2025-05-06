@@ -47,7 +47,7 @@
                 L'expression @(string.IsNullOrWhiteSpace(newTaskTitle)) est évaluée pour désactiver le bouton
                 si le titre de la tâche est vide *@
                 <button class="btn btn-primary mt-3" @onclick="AddTask" disabled="@(string.IsNullOrWhiteSpace(newTaskTitle))">
-                    <span class="bi bi-plus-circle"></span> Ajouter
+                    <span class="bi bi-plus-circle"></span> Ajouterrjgsfkljgdjf
                 </button>
             </div>
         </div>
@@ -87,6 +87,9 @@
                                     <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")" for="@($"task-{task.Id}")">
                                         @task.Title
                                     </label>
+                                    <label class="form-check-label text-muted ms-2" for="@($"task-{task.Id}")">
+                                        @task.endDate.ToString("dd/MM/yyyy HH:mm")
+									</label>
                                 </div>
                                 <div>
                                     <span class="badge bg-primary">@task.Priority</span>
@@ -148,7 +151,8 @@
                 Title = newTaskTitle,
                 Priority = newTaskPriority,
                 IsCompleted = false,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                endDate = DateTime.Now
             });
             
             // Réinitialisation du champ de titre après ajout
@@ -226,5 +230,6 @@
         public string Priority { get; set; } = "Normale";
         public bool IsCompleted { get; set; }
         public DateTime CreatedAt { get; set; }
+		public DateTime endDate { get; set; } 
     }
 }
