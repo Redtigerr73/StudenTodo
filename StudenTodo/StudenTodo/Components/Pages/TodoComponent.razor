@@ -32,7 +32,7 @@
                     *@
                     <input id="taskTitle" class="form-control" @bind="newTaskTitle" @bind:event="oninput" @onkeydown="@HandleKeyDown" />
                 </div>
-                
+
                 <div class="form-group mt-3">
                     <label for="taskPriority">Priorité:</label>
                     @* Exemple de liaison sur un élément select avec plusieurs options *@
@@ -46,7 +46,7 @@
                     <label for="taskDate">Date d'échéance:</label>
                     <input id="taskDate" type="date" class="form-control" @bind="newTaskDate" />
                 </div>
-                
+
                 @* POINT IMPORTANT: Bouton avec attribut disabled conditionnel
                 L'expression @(string.IsNullOrWhiteSpace(newTaskTitle)) est évaluée pour désactiver le bouton
                 si le titre de la tâche est vide *@
@@ -56,7 +56,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-6">
         <div class="card">
             <div class="card-header">
@@ -93,7 +93,7 @@
                                     </label>
                                     <label class="form-check-label text-muted ms-2" for="@($"task-{task.Id}")">
                                         A faire pour le : @task.endDate.ToString("dd/MM/yyyy")
-									</label>
+                                    </label>
                                 </div>
                                 <div>
                                     <span class="badge bg-primary">@task.Priority</span>
@@ -117,8 +117,8 @@
     // Variables pour stocker les données du formulaire
     private string newTaskTitle = "";
     private string newTaskPriority = "Normale";
-	private DateTime newTaskDate = DateTime.Now;
-    
+    private DateTime newTaskDate = DateTime.Now;
+
     // POINT IMPORTANT: Méthode asynchrone du cycle de vie exécutée après chaque rendu
     // La version asynchrone de OnAfterRender permet d'utiliser await pour des opérations asynchrones
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -130,7 +130,7 @@
             await LoadTasksFromLocalStorage();
         }
     }
-    
+
     // POINT IMPORTANT: Gestion des événements clavier
     // KeyboardEventArgs contient les informations sur l'événement clavier
     private async Task HandleKeyDown(KeyboardEventArgs e)
@@ -142,7 +142,7 @@
             await AddTask();
         }
     }
-    
+
     // POINT IMPORTANT: Méthode asynchrone pour ajouter une tâche
     // Les méthodes appelées par des événements peuvent être asynchrones dans Blazor
     private async Task AddTask()
@@ -159,7 +159,7 @@
                 CreatedAt = DateTime.Now,
                 endDate = newTaskDate
             });
-            
+
             // Réinitialisation du champ de titre après ajout
             newTaskTitle = ""; 
             // Sauvegarde immédiate des tâches dans le localStorage
@@ -167,7 +167,7 @@
             // REMARQUE: Blazor détecte automatiquement les modifications et met à jour l'UI
         }
     }
-    
+
     // Méthode pour supprimer une tâche spécifique
     private async Task RemoveTask(TodoItem task)
     {
@@ -176,7 +176,7 @@
         // Sauvegarde des modifications
         await SaveTasksToLocalStorage();
     }
-    
+
     // POINT IMPORTANT: Méthode qui retourne une classe CSS différente selon la priorité
     // Montre l'utilisation de l'expression switch pour simplifier les conditions
     private string GetPriorityClass(string priority)
@@ -190,7 +190,7 @@
             _ => ""  // Cas par défaut (underscore)
         };
     }
-    
+
     // Méthode liée au bouton de sauvegarde explicite
     private async Task SaveTasks()
     {
@@ -200,7 +200,7 @@
         // Affiche une boîte de dialogue d'alerte côté client
         await JSRuntime.InvokeVoidAsync("alert", "Vos tâches ont été sauvegardées avec succès !");
     }
-    
+
     // POINT IMPORTANT: Méthode pour sauvegarder les données côté client avec JSInterop
     // JSInterop permet à Blazor de communiquer avec JavaScript pour des fonctionnalités non disponibles en .NET
     private async Task SaveTasksToLocalStorage()
@@ -210,13 +210,13 @@
         // Appel de l'API localStorage du navigateur via JSInterop
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", "studentodo_tasks", json);
     }
-    
+
     // Méthode pour charger les données depuis le localStorage
     private async Task LoadTasksFromLocalStorage()
     {
         // Récupération des données JSON depuis le localStorage
         var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
-        
+
         // Vérification que des données existent
         if (!string.IsNullOrEmpty(json))
         {
@@ -224,6 +224,7 @@
             // L'opérateur ?? fournit une valeur par défaut (nouvelle liste vide) si la désérialisation échoue
             tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
         }
+        StateHasChanged();
     }
     
     // POINT IMPORTANT: Classe interne pour encapsuler les données d'une tâche
