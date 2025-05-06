@@ -91,10 +91,10 @@
                                     @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
                                     <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
                                     @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
-                                    <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")" for="@($"task-{task.Id}")">
+                                    <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")">
                                         @task.Title
                                     </label>
-                                    <label class="form-check-label text-muted ms-2" for="@($"task-{task.Id}")">
+                                    <label class="form-check-label text-muted ms-2">
                                         A faire pour le : @task.endDate.ToString("dd/MM/yyyy")
                                     </label>
                                 </div>
