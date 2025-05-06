@@ -86,7 +86,7 @@
                         {
                             @if (!task.IsCompleted)
                             {
-                            <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
+                            <li class="d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority) mb-3">
                                 <div class="form-check">
                                     @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
                                     <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
@@ -117,7 +117,7 @@
                         {
                             @if (task.IsCompleted)
                             {
-                                <li class="@GetPriorityClass(task.Priority) list-group-item d-flex justify-content-between align-items-center mb-3">
+                                <li class="@GetPriorityClass(task.Priority) d-flex justify-content-between align-items-center mb-3">
                                     <div class="form-check">
                                         @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
                                         <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
