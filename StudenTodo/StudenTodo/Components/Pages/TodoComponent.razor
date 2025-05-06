@@ -83,6 +83,8 @@
                         À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
                         @foreach (var task in tasks)
                         {
+                            @if (!task.IsCompleted)
+                            {
                             <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
                                 <div class="form-check">
                                     @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
@@ -103,6 +105,7 @@
                                     </button>
                                 </div>
                             </li>
+                            }
                         }
                     </ul>
                 }
