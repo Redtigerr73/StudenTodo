@@ -44,8 +44,15 @@
     <div id="offline-notification" style="display: none;" class="offline-indicator">
         Vous êtes actuellement hors ligne. Certaines fonctionnalités peuvent être limitées.
     </div>
-    
-    <Routes />
+
+
+    @* Cascading pour propager l'état d'authentification *@
+    <CascadingAuthenticationState>
+        <Routes />
+    </CascadingAuthenticationState>
+
+
+
     <script src="_framework/blazor.web.js"></script>
     
     <!-- Script d'enregistrement du service worker -->
