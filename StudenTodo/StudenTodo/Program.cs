@@ -94,6 +94,7 @@ app.MapRazorComponents<App>()
 
 // Configure les routes supplémentaires nécessaires aux composants d'authentification
 // et de gestion des comptes (login, register, etc.)
+
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();
