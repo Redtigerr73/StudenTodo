@@ -108,6 +108,36 @@
                             }
                         }
                     </ul>
+                    <ul class="list-group">
+                        @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
+                        À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
+                        @foreach (var task in tasks)
+                        {
+                            @if (task.IsCompleted)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
+                                    <div class="form-check">
+                                        @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
+                                        <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
+                                        @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
+                                        <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")" for="@($"task-{task.Id}")">
+                                            @task.Title
+                                        </label>
+                                        <label class="form-check-label text-muted ms-2" for="@($"task-{task.Id}")">
+                                            A faire pour le : @task.endDate.ToString("dd/MM/yyyy")
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-primary">@task.Priority</span>
+                                        @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
+                                        <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
+                                            <span class="bi bi-trash">x</span>
+                                        </button>
+                                    </div>
+                                </li>
+                            }
+                        }
+                    </ul>
                 }
             </div>
         </div>
