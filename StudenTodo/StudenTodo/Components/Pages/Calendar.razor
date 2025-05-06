@@ -1,0 +1,95 @@
+@page "/calendrier"
+@using System.Globalization
+
+<h2>Calendrier du mois - @DateTime.Now.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))</h2>
+
+<table class="table table-bordered text-center calendar-table">
+    <thead class="table-light">
+        <tr>
+            @foreach (var dayName in dayNames)
+            {
+                <th>@dayName</th>
+            }
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var week in weeks)
+        {
+            <tr>
+                @foreach (var day in week)
+                {
+                    if (day == null)
+                    {
+                        <td></td>
+                    }
+                    else
+                    {
+                        bool isToday = day.Value.Date == DateTime.Today;
+                        <td class="@((isToday ? "bg-primary text-white fw-bold" : ""))">
+                            @day.Value.Day
+                        </td>
+                    }
+                }
+            </tr>
+        }
+    </tbody>
+</table>
+
+<style>
+    .calendar-table td {
+        height: 70px;
+        vertical-align: middle;
+        font-size: 1.1rem;
+        cursor: default;
+    }
+
+    .calendar-table th {
+        background-color: #f0f0f0;
+        font-weight: 600;
+    }
+
+    .calendar-table .bg-primary {
+        background-color: #03173d !important;
+    }
+</style>
+
+@code {
+    private string[] dayNames = new[] { "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim" };
+    private List<List<DateTime?>> weeks = new();
+
+    protected override void OnInitialized()
+    {
+        var today = DateTime.Today;
+        var firstDayOfMonth = new DateTime(today.Year, today.Month, 1);
+        var daysInMonth = DateTime.DaysInMonth(today.Year, today.Month);
+
+        var currentDay = firstDayOfMonth;
+        var currentWeek = new List<DateTime?>();
+
+        // Décalage pour que le mois commence au bon jour (lundi = début)
+        int dayOfWeekOffset = ((int)firstDayOfMonth.DayOfWeek + 6) % 7;
+        for (int i = 0; i < dayOfWeekOffset; i++)
+        {
+            currentWeek.Add(null);
+        }
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            currentWeek.Add(new DateTime(today.Year, today.Month, day));
+            if (currentWeek.Count == 7)
+            {
+                weeks.Add(currentWeek);
+                currentWeek = new List<DateTime?>();
+            }
+        }
+
+        if (currentWeek.Count > 0)
+        {
+            while (currentWeek.Count < 7)
+            {
+                currentWeek.Add(null);
+            }
+            weeks.Add(currentWeek);
+        }
+    }
+}
