@@ -32,7 +32,7 @@
                     *@
                     <input id="taskTitle" class="form-control" @bind="newTaskTitle" @bind:event="oninput" @onkeydown="@HandleKeyDown" />
                 </div>
-                
+
                 <div class="form-group mt-3">
                     <label for="taskPriority">Priorité:</label>
                     @* Exemple de liaison sur un élément select avec plusieurs options *@
@@ -42,69 +42,71 @@
                         <option value="Haute">Haute</option>
                     </select>
                 </div>
-                
-                @* POINT IMPORTANT: Bouton avec attribut disabled conditionnel
+                <div class="form-group mt-3">
+                    <label for="taskDate">Date d'échéance:</label>
+                    <input id="taskDate" type="date" class="form-control" @bind="newTaskDate" />
+                </div>
+            </div>
+
+            @* POINT IMPORTANT: Bouton avec attribut disabled conditionnel
                 L'expression @(string.IsNullOrWhiteSpace(newTaskTitle)) est évaluée pour désactiver le bouton
                 si le titre de la tâche est vide *@
-                <button class="btn btn-primary mt-3" @onclick="AddTask" disabled="@(string.IsNullOrWhiteSpace(newTaskTitle))">
-                    <span class="bi bi-plus-circle"></span> Ajouterrjgsfkljgdjf
+            <button class="btn btn-primary mt-3" @onclick="AddTask" disabled="@(string.IsNullOrWhiteSpace(newTaskTitle))">
+                <span class="bi bi-plus-circle"></span> Ajouter
+            </button>
+        </div>
+    </div>
+
+
+<div class="col-md-6">
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                @* Affichage dynamique du nombre de tâches - démontre la réactivité *@
+                <h3>Mes tâches (@tasks.Count)</h3>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="SaveTasks">
+                    <span class="bi bi-save"></span> Sauvegarder
                 </button>
             </div>
         </div>
-    </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    @* Affichage dynamique du nombre de tâches - démontre la réactivité *@
-                    <h3>Mes tâches (@tasks.Count)</h3>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="SaveTasks">
-                        <span class="bi bi-save"></span> Sauvegarder
-                    </button>
+        <div class="card-body">
+            @* POINT IMPORTANT: Rendu conditionnel - différent contenu selon l'état des données *@
+            @if (!tasks.Any())
+            {
+                <div class="alert alert-info">
+                    Aucune tâche pour le moment. Ajoutez-en une !
                 </div>
-            </div>
-            <div class="card-body">
-                @* POINT IMPORTANT: Rendu conditionnel - différent contenu selon l'état des données *@
-                @if (!tasks.Any())
-                {
-                    <div class="alert alert-info">
-                        Aucune tâche pour le moment. Ajoutez-en une !
-                    </div>
-                }
-                else
-                {
-                    <ul class="list-group">
-                        @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
+            }
+            else
+            {
+                <ul class="list-group">
+                    @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
                         À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
-                        @foreach (var task in tasks)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
-                                <div class="form-check">
-                                    @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
-                                    <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
-                                    @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
-                                    <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")" for="@($"task-{task.Id}")">
-                                        @task.Title
-                                    </label>
-                                    <label class="form-check-label text-muted ms-2" for="@($"task-{task.Id}")">
-                                        @task.endDate.ToString("dd/MM/yyyy HH:mm")
-									</label>
-                                </div>
-                                <div>
-                                    <span class="badge bg-primary">@task.Priority</span>
-                                    @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
-                                    <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
-                                        <span class="bi bi-trash"></span>
-                                    </button>
-                                </div>
-                            </li>
-                        }
-                    </ul>
-                }
-            </div>
+                    @foreach (var task in tasks)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
+                            <div class="form-check">
+                                @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
+                                <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
+                                @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
+                                <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")" for="@($"task-{task.Id}")">
+                                    @task.Title
+                                </label>
+                            </div>
+                            <div>
+                                <span class="badge bg-primary">@task.Priority</span>
+                                @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
+                                <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
+                                    <span class="bi bi-trash">x</span>
+                                </button>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
         </div>
     </div>
+</div>
 </div>
 
 @code {
@@ -113,7 +115,8 @@
     // Variables pour stocker les données du formulaire
     private string newTaskTitle = "";
     private string newTaskPriority = "Normale";
-    
+    private DateTime newTaskDate = DateTime.Now;
+
     // POINT IMPORTANT: Méthode asynchrone du cycle de vie exécutée après chaque rendu
     // La version asynchrone de OnAfterRender permet d'utiliser await pour des opérations asynchrones
     protected override async Task OnAfterRenderAsync(bool firstRender)
