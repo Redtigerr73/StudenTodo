@@ -1,7 +1,24 @@
 ﻿@page "/"
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthProvider
 
-<PageTitle>Home</PageTitle>
+<p>Chargement...</p>
 
-<h1>Hello, world!</h1>
+@code {
 
-Welcome to your new app.
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated ?? false)
+        {
+            Navigation.NavigateTo("/todo", true);
+        }
+        else
+        {
+            Navigation.NavigateTo("/Account/Login", true);
+        }
+    }
+
+}
