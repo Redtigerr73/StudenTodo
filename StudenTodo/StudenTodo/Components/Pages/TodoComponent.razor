@@ -86,15 +86,17 @@
                         {
                             @if (!task.IsCompleted)
                             {
-                            <li class="d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority) mb-3">
-                                <div class="form-check">
+
+                                <li role="button" class="d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority) " data-bs-toggle="modal" data-bs-target="#taskModal">
+
+                                    <div class="form-check">
                                     @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
-                                    <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
+                                        <input role="button" class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
                                     @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
-                                    <label class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")">
+                                        <label role="button" class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")">
                                         @task.Title
                                     </label>
-                                    <label class="form-check-label text-muted ms-2">
+                                    <label role="button" class="form-check-label text-muted ms-2">
                                         A faire pour le : @task.endDate.ToString("dd/MM/yyyy")
                                     </label>
                                 </div>
@@ -109,8 +111,27 @@
                                     </button>
                                 </div>
                             </li>
+                               
+                                
                             }
                         }
+                        <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h1 class="modal-title fs-5" id="exampleModalLabel">Modal title</h1>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        ...
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        <button type="button" class="btn btn-primary">Save changes</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </ul>
 					<h4 class="mt-4">Tâches terminées</h4>
                     <ul class="list-group">
