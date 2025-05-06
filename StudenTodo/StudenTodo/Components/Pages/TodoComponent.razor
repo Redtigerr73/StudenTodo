@@ -78,6 +78,7 @@
                 }
                 else
                 {
+					<h4>Tâches en cours</h4>
                     <ul class="list-group">
                         @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
                         À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
@@ -108,6 +109,7 @@
                             }
                         }
                     </ul>
+					<h4 class="mt-4">Tâches terminées</h4>
                     <ul class="list-group">
                         @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
                         À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
@@ -115,7 +117,7 @@
                         {
                             @if (task.IsCompleted)
                             {
-                                <li class="list-group-item d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority)">
+                                <li class="@GetPriorityClass(task.Priority) list-group-item d-flex justify-content-between align-items-center mb-3">
                                     <div class="form-check">
                                         @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
                                         <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
@@ -217,9 +219,9 @@
         // Syntaxe C# moderne avec expression switch
         return priority switch
         {
-            "Haute" => "border-start border-danger border-5",
-            "Normale" => "border-start border-warning border-5",
-            "Basse" => "border-start border-info border-5",
+            "Haute" => "alert alert-danger",
+            "Normale" => "alert alert-warning",
+            "Basse" => "alert alert-info",
             _ => ""  // Cas par défaut (underscore)
         };
     }
