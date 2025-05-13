@@ -3,6 +3,8 @@
 
 @* pour protéger l'accès à une route ' *@
 @using Microsoft.AspNetCore.Authorization
+@using StudenTodo.Data
+@using Microsoft.EntityFrameworkCore
 @attribute [Authorize]
 
 
@@ -18,6 +20,7 @@
 @* POINT IMPORTANT: Injection de dépendance - Permet d'accéder au runtime JavaScript *@
 @* C'est une technique clé de .NET pour l'inversion de contrôle (IOC) *@
 @inject IJSRuntime JSRuntime
+@inject ApplicationDbContext DbContext
 
 <PageTitle>Gestion des tâches</PageTitle>
 
@@ -86,7 +89,7 @@
                 }
                 else
                 {
-					<h4>Tâches en cours</h4>
+                    <h4>Tâches en cours</h4>
                     <ul class="list-group">
                         @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
                         À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
@@ -98,29 +101,29 @@
                                 <li role="button" class="d-flex justify-content-between align-items-center @GetPriorityClass(task.Priority) " data-bs-toggle="modal" data-bs-target="#taskModal">
 
                                     <div class="form-check">
-                                    @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
+                                        @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
                                         <input role="button" class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
-                                    @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
+                                        @* Classe CSS conditionnelle basée sur l'état de la tâche (barrée si complétée) *@
                                         <label role="button" class="form-check-label @(task.IsCompleted ? "text-decoration-line-through" : "")">
-                                        @task.Title
-                                    </label>
-                                    <label role="button" class="form-check-label text-muted ms-2">
-                                        A faire pour le : @task.endDate.ToString("dd/MM/yyyy")
-                                    </label>
-                                </div>
-                                <div>
-                                    <span class="badge bg-primary">@task.Priority</span>
-                                    @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
-                                    <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
+                                            @task.Title
+                                        </label>
+                                        <label role="button" class="form-check-label text-muted ms-2">
+                                            A faire pour le : @task.EndDate.ToString("dd/MM/yyyy")
+                                        </label>
+                                    </div>
+                                    <div>
+                                        <span class="badge bg-primary">@task.Priority</span>
+                                        @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
+                                        <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                                                 <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
                                                 <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z" />
                                             </svg>
-                                    </button>
-                                </div>
-                            </li>
-                               
-                                
+                                        </button>
+                                    </div>
+                                </li>
+
+
                             }
                         }
                         <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -141,7 +144,7 @@
                             </div>
                         </div>
                     </ul>
-					<h4 class="mt-4">Tâches terminées</h4>
+                    <h4 class="mt-4">Tâches terminées</h4>
                     <ul class="list-group">
                         @* POINT IMPORTANT: Boucle @foreach pour générer du contenu de manière dynamique
                         À chaque modification de la collection tasks, Blazor recalcule efficacement ce rendu *@
@@ -149,7 +152,7 @@
                         {
                             @if (task.IsCompleted)
                             {
-                                <li class="@GetPriorityClass(task.Priority) d-flex justify-content-between align-items-center mb-3">
+                                <li class="@GetPriorityClass(task.Priority) d-flex justify-content-between align-items-center mb-3" >
                                     <div class="form-check">
                                         @* POINT IMPORTANT: Data binding sur une checkbox liée à une propriété booléenne *@
                                         <input class="form-check-input" type="checkbox" @bind="task.IsCompleted" id="@($"task-{task.Id}")" />
@@ -158,7 +161,7 @@
                                             @task.Title
                                         </label>
                                         <label class="form-check-label text-muted ms-2" for="@($"task-{task.Id}")">
-                                            A faire pour le : @task.endDate.ToString("dd/MM/yyyy")
+                                            A faire pour le : @task.EndDate.ToString("dd/MM/yyyy")
                                         </label>
                                     </div>
                                     <div>
@@ -197,7 +200,7 @@
         if (firstRender)
         {
             // Charger les tâches depuis le localStorage du navigateur lors du premier rendu
-            await LoadTasksFromLocalStorage();
+            await LoadTasks();
         }
     }
 
@@ -220,15 +223,19 @@
         if (!string.IsNullOrWhiteSpace(newTaskTitle))
         {
             // Création d'un nouvel objet TodoItem avec les valeurs du formulaire
-            tasks.Add(new TodoItem
-            {
-                Id = Guid.NewGuid(),  // Génération d'un ID unique pour chaque tâche
+            var newTask = new TodoItem {
+                Id = Guid.NewGuid(),
                 Title = newTaskTitle,
                 Priority = newTaskPriority,
                 IsCompleted = false,
                 CreatedAt = DateTime.Now,
-                endDate = newTaskDate
-            });
+                EndDate = newTaskDate
+             };
+            tasks.Add(newTask);
+
+            // Ajouter à la base de données
+            await DbContext.TodoItems.AddAsync(newTask);
+            await DbContext.SaveChangesAsync();
 
             // Réinitialisation du champ de titre après ajout
             newTaskTitle = ""; 
@@ -243,7 +250,11 @@
     {
         // Suppression de la tâche de la liste
         tasks.Remove(task);
-        // Sauvegarde des modifications
+        // Supprimer de la base de données
+        DbContext.TodoItems.Remove(task);
+        await DbContext.SaveChangesAsync();
+
+        // Mettre à jour le localStorage
         await SaveTasksToLocalStorage();
     }
 
@@ -264,10 +275,21 @@
     // Méthode liée au bouton de sauvegarde explicite
     private async Task SaveTasks()
     {
-        // Sauvegarde dans le localStorage
+        // Synchroniser avec la base de données
+        foreach (var task in tasks)
+        {
+            // Vérifier si l'entité est déjà suivie pour éviter les erreurs
+            var entry = DbContext.Entry(task);
+            if (entry.State == EntityState.Detached)
+            {
+                DbContext.Update(task);
+            }
+        }
+        await DbContext.SaveChangesAsync();
+
+        // Sauvegarder dans le localStorage
         await SaveTasksToLocalStorage();
-        // POINT IMPORTANT: Utilisation de JSInterop pour appeler une fonction JavaScript native
-        // Affiche une boîte de dialogue d'alerte côté client
+
         await JSRuntime.InvokeVoidAsync("alert", "Vos tâches ont été sauvegardées avec succès !");
     }
 
@@ -281,31 +303,37 @@
         await JSRuntime.InvokeVoidAsync("localStorage.setItem", "studentodo_tasks", json);
     }
 
-    // Méthode pour charger les données depuis le localStorage
-    private async Task LoadTasksFromLocalStorage()
+    private async Task LoadTasks()
     {
-        // Récupération des données JSON depuis le localStorage
-        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
+        // Charger depuis la base de données en priorité
+        tasks = await DbContext.TodoItems.ToListAsync();
 
-        // Vérification que des données existent
-        if (!string.IsNullOrEmpty(json))
+        // Si aucune tâche n'est trouvée dans la base de données, essayer le localStorage
+        if (!tasks.Any())
         {
-            // Désérialisation du JSON en liste d'objets TodoItem
-            // L'opérateur ?? fournit une valeur par défaut (nouvelle liste vide) si la désérialisation échoue
-            tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
+            await LoadTasksFromLocalStorage();
         }
         StateHasChanged();
     }
-    
-    // POINT IMPORTANT: Classe interne pour encapsuler les données d'une tâche
-    // Utiliser une classe bien définie facilite la manipulation des données et la sérialisation
-    private class TodoItem
+
+    // Méthode pour charger les données depuis le localStorage
+    private async Task LoadTasksFromLocalStorage()
     {
-        public Guid Id { get; set; }  // Identifiant unique
-        public string Title { get; set; } = "";
-        public string Priority { get; set; } = "Normale";
-        public bool IsCompleted { get; set; }
-        public DateTime CreatedAt { get; set; }
-		public DateTime endDate { get; set; } 
+        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
+
+        if (!string.IsNullOrEmpty(json))
+        {
+            tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
+
+            // Optionnel: synchroniser avec la base de données
+            foreach (var task in tasks)
+            {
+                if (!await DbContext.TodoItems.AnyAsync(t => t.Id == task.Id))
+                {
+                    await DbContext.TodoItems.AddAsync(task);
+                }
+            }
+            await DbContext.SaveChangesAsync();
+        }
     }
 }
