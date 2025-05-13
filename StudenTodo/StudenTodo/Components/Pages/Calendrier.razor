@@ -6,6 +6,7 @@
 @* Nous n'avons plus besoin d'implémenter IDisposable puisque nous n'utilisons plus de timer *@
 @using System.Globalization
 @using System.Text.Json
+@using StudenTodo.Data
 @inject IJSRuntime JSRuntime
 
 <PageTitle>Calendrier des taches</PageTitle>
@@ -50,14 +51,14 @@
         }
     </div>
 
-    @if (_selectedDate != null)
-    {
-        <div class="event-editor">
-            <h4>Ajouter un événement pour le @(_selectedDate?.ToString("dd MMMM", CultureInfo.GetCultureInfo("fr-FR")))</h4>
-            <input @bind="_newEvent" placeholder="Nom de l'événement" />
-            <button @onclick="AddEvent">Ajouter</button>
-        </div>
-    }
+    @* @if (_selectedDate != null) *@
+    @* { *@
+    @*     <div class="event-editor"> *@
+    @*         <h4>Ajouter un événement pour le @(_selectedDate?.ToString("dd MMMM", CultureInfo.GetCultureInfo("fr-FR")))</h4> *@
+    @*         <input @bind="_newEvent" placeholder="Nom de l'événement" /> *@
+    @*         <button @onclick="AddEvent">Ajouter</button> *@
+    @*     </div> *@
+    @* } *@
 </div>
 </section>
 @code {
@@ -77,7 +78,6 @@
             await LoadTasksFromLocalStorage();
         }
     }
-
     private async Task LoadTasksFromLocalStorage()
     {
         var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
@@ -86,7 +86,7 @@
             var tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
             foreach (var task in tasks)
             {
-                var date = task.endDate.Date;
+                var date = task.EndDate.Date;
                 if (!_events.ContainsKey(date))
                 {
                     _events[date] = new List<string>();
@@ -126,25 +126,15 @@
         _newEvent = string.Empty;
     }
 
-    private void AddEvent()
-    {
-        if (_selectedDate != null && !string.IsNullOrWhiteSpace(_newEvent))
-        {
-            var date = _selectedDate.Value.Date;
-            if (!_events.ContainsKey(date))
-                _events[date] = new List<string>();
-            _events[date].Add($"{_newEvent}|Normale");
-            _newEvent = string.Empty;
-        }
-    }
-
-    private class TodoItem
-    {
-        public Guid Id { get; set; }
-        public string Title { get; set; } = "";
-        public string Priority { get; set; } = "Normale";
-        public bool IsCompleted { get; set; }
-        public DateTime CreatedAt { get; set; }
-        public DateTime endDate { get; set; }
-    }
+    // private void AddEvent()
+    // {
+    //     if (_selectedDate != null && !string.IsNullOrWhiteSpace(_newEvent))
+    //     {
+    //         var date = _selectedDate.Value.Date;
+    //         if (!_events.ContainsKey(date))
+    //             _events[date] = new List<string>();
+    //         _events[date].Add($"{_newEvent}|Normale");
+    //         _newEvent = string.Empty;
+    //     }
+    // }
 }

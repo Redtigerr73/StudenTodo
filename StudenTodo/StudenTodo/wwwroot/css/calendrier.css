@@ -7,6 +7,8 @@ section#calendrier .calendar {
 }
 section#calendrier h3{
     margin: 0 25px;
+    width: 250px;
+    text-align: center;
 }
 section#calendrier .calendar-controls {
     display: flex;
@@ -19,7 +21,7 @@ section#calendrier .calendar-grid {
     gap: 5px;
 }
 section#calendrier .calendar-header, .calendar-cell {
-    padding: 10px;
+    padding: 5px;
     border: 1px solid #ccc;
     min-height: 60px;
     background-color: #f9f9f9;
@@ -36,11 +38,14 @@ section#calendrier .calendar-cell.empty {
     background-color: transparent;
     border: none;
 }
+section#calendrier .calendar-cell strong{
+    margin-left: 8px;
+}
 section#calendrier .event {
     font-size: 0.8em;
     color: #333;
     margin-top: 5px;
-    padding: 2px;
+    padding: 1px 3px;
 }
 section#calendrier .event-editor {
     margin-top: 1em;
