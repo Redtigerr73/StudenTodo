@@ -1,0 +1,195 @@
+﻿@* -------------------------------------------------------------- *@
+@* Page Chronos.razor : composant pour afficher et gérer un   *@
+@* chronomètre d'étude avec notifications et sessions enregistrées *@
+@* -------------------------------------------------------------- *@
+
+
+@* Route de la page *@
+@page "/chronos" 
+
+@* Namespace pour [Authorize] *@
+@using Microsoft.AspNetCore.Authorization  
+
+@* Nécessite que l'utilisateur soit authentifié *@
+@attribute [Authorize] 
+
+@* Rendu côté serveur interactif *@
+@rendermode InteractiveServer 
+
+
+ @* Injection pour appeler du JS *@
+@inject IJSRuntime JS           
+
+
+@* Pour l'agrégation des sessions *@
+@using System.Linq              
+
+@* -------------------------------------------------------------- *@
+@* Styles CSS spécifiques à ce composant                     *@
+@* Vous pouvez aussi créer Chronos.razor.css pour CSS isolé   *@
+@* -------------------------------------------------------------- *@
+
+<style>
+    .chronos-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+    }
+
+    .chronos-title {
+        font-size: 2rem;
+        color: #03173d;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .cards-container {
+        display: flex;
+        gap: 1rem;
+        justify-content: space-around;
+    }
+
+    .task-card {
+        flex: 1;
+        border: 1px solid #ccc;
+        border-radius: 0.5rem;
+        padding: 1rem;
+        background-color: #f9f9f9;
+        text-align: center;
+    }
+
+    .task-title {
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+
+    .task-time {
+        font-size: 1rem;
+        margin: 0.25rem 0;
+    }
+
+    .chronos-button {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<PageTitle>Chronos</PageTitle>
+
+<div class="chronos-container">
+    <h1 class="chronos-title">Chronomètres par tâche</h1>
+    <div class="cards-container">
+        @foreach (var t in tasks)
+        {
+            <div class="task-card">
+                <div class="task-title">@t.Name</div>
+                <div class="task-time">
+                    @* Affichage session formatée H - M - S *@
+                    @{
+                        var hrs = t.CurrentSeconds / 3600;
+                        var mins = (t.CurrentSeconds % 3600) / 60;
+                        var secs = t.CurrentSeconds % 60;
+                    }
+                    Session : @($"{hrs:D2}h - {mins:D2}m - {secs:D2}s")
+                </div>
+                @if (!t.IsRunning)
+                {
+                    <button class="chronos-button btn btn-success" @onclick="() => Start(t)">Démarrer</button>
+                }
+                else
+                {
+                    <button class="chronos-button btn btn-danger" @onclick="() => Stop(t)">Arrêter</button>
+                }
+                <div class="task-time">
+                    @* Affichage total formaté H - M - S *@
+                    @{
+                        var totalH = (int)t.TotalTime.TotalHours;
+                        var totalM = t.TotalTime.Minutes;
+                        var totalS = t.TotalTime.Seconds;
+                    }
+                    Total aujourd'hui : @($"{totalH:D2}h - {totalM:D2}m - {totalS:D2}s")
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // Modèle pour chaque tâche
+    private class TaskModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public bool IsRunning { get; set; }
+        public int CurrentSeconds { get; set; }
+        public TimeSpan TotalTime { get; set; }
+        public System.Timers.Timer? Timer { get; set; }
+    }
+
+    // Liste initiale des tâches
+    private List<TaskModel> tasks = new()
+    {
+        new TaskModel { Name = "Etudier cours LDROI1525 - Droit social" },
+        new TaskModel { Name = "Refaire les TP LCOPS1321 - Macroéconomie" },
+        new TaskModel { Name = "Réaliser PowerPoint LANGL1314 - Anglais B3" }
+    };
+
+    private bool _permissionRequested;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_permissionRequested)
+        {
+            _permissionRequested = true;
+            await JS.InvokeAsync<string>("eval", "Notification.requestPermission()");
+        }
+    }
+
+    // Démarrer le chronomètre pour une tâche
+    private void Start(TaskModel task)
+    {
+        if (task.IsRunning)
+            return;
+
+        task.IsRunning = true;
+        task.CurrentSeconds = 0;
+        task.Timer = new System.Timers.Timer(1000);
+        task.Timer.Elapsed += async (_, __) =>
+        {
+            task.CurrentSeconds++;
+            await InvokeAsync(StateHasChanged);
+
+            // Notification toutes les 5 minutes
+            if (task.CurrentSeconds % (5 * 60) == 0)
+                await NotifyAsync(task);
+        };
+        task.Timer.Start();
+    }
+
+    // Arrêter et enregistrer une session pour une tâche
+    private void Stop(TaskModel task)
+    {
+        if (!task.IsRunning)
+            return;
+
+        task.Timer?.Stop();
+        task.Timer?.Dispose();
+        task.IsRunning = false;
+
+        // Ajouter au total de la journée
+        task.TotalTime += TimeSpan.FromSeconds(task.CurrentSeconds);
+    }
+
+    // Notification via JS Interop
+    private async Task NotifyAsync(TaskModel task)
+    {
+        var mins = task.CurrentSeconds / 60;
+        var message = $"Tu as étudié {mins} minute(s) sur '{task.Name}' !";
+        var script = $"(function() {{ if (Notification.permission === 'granted') new Notification('Bravo !', {{ body: '{message}' }}); }})();";
+        await JS.InvokeVoidAsync("eval", script);
+    }
+
+    // Nettoyage : arrêter tous les timers
+    public void Dispose() => tasks.ForEach(t => t.Timer?.Dispose());
+}
