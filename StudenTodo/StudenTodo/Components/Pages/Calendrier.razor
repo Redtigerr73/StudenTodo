@@ -5,6 +5,8 @@
 @using Microsoft.AspNetCore.Components.Web
 @* Nous n'avons plus besoin d'implémenter IDisposable puisque nous n'utilisons plus de timer *@
 @using System.Globalization
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
 
 <PageTitle>Calendrier des taches</PageTitle>
 
@@ -64,6 +66,33 @@
 
     private Dictionary<DateTime, List<string>> _events = new();
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadTasksFromLocalStorage();
+        }
+    }
+
+    private async Task LoadTasksFromLocalStorage()
+    {
+        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
+            foreach (var task in tasks)
+            {
+                var date = task.endDate.Date;
+                if (!_events.ContainsKey(date))
+                {
+                    _events[date] = new List<string>();
+                }
+                _events[date].Add(task.Title);
+            }
+            StateHasChanged();
+        }
+    }
+
     private void PreviousMonth()
     {
         _currentMonth = _currentMonth.AddMonths(-1);
@@ -92,5 +121,15 @@
             _events[date].Add(_newEvent);
             _newEvent = string.Empty;
         }
+    }
+
+    private class TodoItem
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Priority { get; set; } = "Normale";
+        public bool IsCompleted { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime endDate { get; set; }
     }
 }
