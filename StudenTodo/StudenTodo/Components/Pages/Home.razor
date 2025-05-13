@@ -1,7 +1,47 @@
 ﻿@page "/"
-
+@using System.ComponentModel.DataAnnotations
 <PageTitle>Home</PageTitle>
 
 <h1>Hello, world!</h1>
 
-Welcome to your new app.
+
+
+<h3>Inscription</h3>
+
+<EditForm Model="@formData" OnValidSubmit="@HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div>
+        <label>Nom :</label><br />
+        <InputText @bind-Value="formData.Nom" class="form-control" />
+        <ValidationMessage For="@(() => formData.Nom)" />
+    </div>
+
+    <div>
+        <label>Email :</label><br />
+        <InputText @bind-Value="formData.Email" type="email" class="form-control" />
+        <ValidationMessage For="@(() => formData.Email)" />
+    </div>
+
+</EditForm>
+
+
+@code {
+    private FormModel formData = new();
+
+    private void HandleSubmit()
+    {
+        // Action après soumission valide
+    }
+
+    public class FormModel
+    {
+        [Required(ErrorMessage = "Le nom est requis.")]
+        public string Nom { get; set; }
+
+        [Required(ErrorMessage = "L'email est requis.")]
+        [EmailAddress(ErrorMessage = "L'adresse email est invalide.")]
+        public string Email { get; set; }
+    }
+}
