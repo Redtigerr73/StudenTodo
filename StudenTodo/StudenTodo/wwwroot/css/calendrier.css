@@ -39,7 +39,6 @@ section#calendrier .calendar-cell.empty {
 section#calendrier .event {
     font-size: 0.8em;
     color: #333;
-    background-color: #d0f0ff;
     margin-top: 5px;
     padding: 2px;
 }
@@ -47,4 +46,28 @@ section#calendrier .event-editor {
     margin-top: 1em;
     padding: 10px;
     border-top: 1px solid #ccc;
+}
+
+.event {
+    margin: 2px;
+    padding: 2px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    color: black; /* Ensure text is visible */
+}
+
+.event-high {
+    background-color: #ffcccc; /* Red for high priority */
+}
+
+.event-medium {
+    background-color: #fff3cc; /* Yellow for medium priority */
+}
+
+.event-low {
+    background-color: #ccffcc; /* Green for low priority */
+}
+
+.event-default {
+    background-color: #cccccc; /* Gray for default */
 }

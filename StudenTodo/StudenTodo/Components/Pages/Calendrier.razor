@@ -10,6 +10,7 @@
 
 <PageTitle>Calendrier des taches</PageTitle>
 
+
 <h1>Calendrier</h1>
 <section id="calendrier">
 <div class="calendar">
@@ -39,7 +40,10 @@
                 {
                     foreach (var ev in _events[date.Date])
                     {
-                        <div class="event">@ev</div>
+                        var taskParts = ev.Split('|'); // Assuming tasks are stored as "Title|Priority"
+                        var taskTitle = taskParts[0];
+                        var taskPriority = taskParts.Length > 1 ? taskParts[1] : "Normale";
+                        <div class="event @GetPriorityClass(taskPriority)">@taskTitle</div>
                     }
                 }
             </div>
@@ -50,7 +54,7 @@
     {
         <div class="event-editor">
             <h4>Ajouter un événement pour le @(_selectedDate?.ToString("dd MMMM", CultureInfo.GetCultureInfo("fr-FR")))</h4>
-            <input @bind="_newEvent" placeholder="Nom de l’événement" />
+            <input @bind="_newEvent" placeholder="Nom de l'événement" />
             <button @onclick="AddEvent">Ajouter</button>
         </div>
     }
@@ -87,10 +91,21 @@
                 {
                     _events[date] = new List<string>();
                 }
-                _events[date].Add(task.Title);
+                _events[date].Add($"{task.Title}|{task.Priority}");
             }
             StateHasChanged();
         }
+    }
+
+    private string GetPriorityClass(string priority)
+    {
+        return priority switch
+        {
+            "Haute" => "event-high",
+            "Normale" => "event-medium",
+            "Basse" => "event-low",
+            _ => "event-default"
+        };
     }
 
     private void PreviousMonth()
@@ -118,7 +133,7 @@
             var date = _selectedDate.Value.Date;
             if (!_events.ContainsKey(date))
                 _events[date] = new List<string>();
-            _events[date].Add(_newEvent);
+            _events[date].Add($"{_newEvent}|Normale");
             _newEvent = string.Empty;
         }
     }
