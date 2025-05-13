@@ -25,55 +25,21 @@
 
 @* STRUCTURE: Utilisation d'une disposition en grille Bootstrap *@
 <div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <h3>Ajouter une tâche</h3>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label for="taskTitle">Titre de la tâche:</label>
-                    @* POINTS IMPORTANTS: 
-                    1. @bind pour la liaison de données bidirectionnelle
-                    2. @bind:event="oninput" pour mettre à jour en temps réel
-                    3. @onkeydown pour capturer les événements clavier (ici pour permettre de valider avec Entrée)
-                    *@
-                    <input id="taskTitle" class="form-control" @bind="newTaskTitle" @bind:event="oninput" @onkeydown="@HandleKeyDown" />
-                </div>
-
-                <div class="form-group mt-3">
-                    <label for="taskPriority">Priorité:</label>
-                    @* Exemple de liaison sur un élément select avec plusieurs options *@
-                    <select id="taskPriority" class="form-select" @bind="newTaskPriority">
-                        <option value="Basse">Basse</option>
-                        <option value="Normale">Normale</option>
-                        <option value="Haute">Haute</option>
-                    </select>
-                </div>
-                <div class="form-group mt-3">
-                    <label for="taskDate">Date d'échéance:</label>
-                    <input id="taskDate" type="date" class="form-control" @bind="newTaskDate" />
-                </div>
-
-                @* POINT IMPORTANT: Bouton avec attribut disabled conditionnel
-                L'expression @(string.IsNullOrWhiteSpace(newTaskTitle)) est évaluée pour désactiver le bouton
-                si le titre de la tâche est vide *@
-                <button class="btn btn-primary mt-3" @onclick="AddTask" disabled="@(string.IsNullOrWhiteSpace(newTaskTitle))">
-                    <span class="bi bi-plus-circle">Ajouter</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
+    <div class="col-md-6 center">
         <div class="card">
             <div class="card-header">
                 <div class="d-flex justify-content-between align-items-center">
                     @* Affichage dynamique du nombre de tâches - démontre la réactivité *@
                     <h3>Mes tâches (@tasks.Count)</h3>
-                    <button class="btn btn-sm btn-outline-secondary" @onclick="SaveTasks">
-                        <span class="bi bi-save">Sauvegarder</span>
-                    </button>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" @onclick="SaveTasks">
+                            <span class="bi bi-save">Sauvegarder</span>
+                        </button>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+                            Ajouter une tâche
+                        </button>
+                        @* La modal d'ajout d'une tâche se trouve en bas du fichier *@
+                    </div>
                 </div>
             </div>
             <div class="card-body">
@@ -111,7 +77,9 @@
                                 <div>
                                     <span class="badge bg-primary">@task.Priority</span>
                                     @* POINT IMPORTANT: Fonction lambda dans @onclick pour passer un paramètre à la méthode *@
-                                    <button class="btn btn-sm btn-info ms-2" data-bs-toggle="modal" data-bs-target="#taskModal">Ajouter un commentaire</button>
+                                    <button class="btn btn-sm btn-info ms-2" data-bs-toggle="modal" data-bs-target="#taskModal"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
+                                        <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/>
+                                        </svg></button>
                                     <button class="btn btn-sm btn-danger ms-2" @onclick="() => RemoveTask(task)">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                                                 <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z" />
@@ -125,13 +93,39 @@
                             }
                         }
 
-                        @* Modal Ajout commentaire *@
+                        @* Modal Edition de tâches *@
                         <div class="modal fade" id="taskModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h1 class="modal-title fs-5" id="exampleModalLabel">Ajouter un commentaire</h1>
+                                        <h1 class="modal-title fs-5" id="exampleModalLabel">Modifier la tâche : </h1>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-header">
+                                        <h1 class="modal-title fs-5">Modifier le titre</h1>
+                                    </div>
+                                    <div class=modal-body>
+                                        <form class="d-flex align-items-center">
+                                            <div class="form-group mb-2 me-2">
+                                                <input type="text" class="form-control" id="updateTitle" placeholder="">
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <button type="button" class="btn btn-primary">Mettre à jour</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                    <div class="modal-header">
+                                        <h1 class="modal-title fs-5">Modifier la date d'échéance</h1>
+                                    </div>
+                                    <div class=modal-body>
+                                        <form class="d-flex align-items-center">
+                                            <div class="form-group mb-2 me-2">
+                                                <input id="taskDate" type="date" class="form-control" />
+                                            </div>
+                                            <div class="form-group mb-2">
+                                                <button type="button" class="btn btn-primary">Mettre à jour</button>
+                                            </div>
+                                        </form>
                                     </div>
                                     <div class="modal-header">
                                         <h1 class="modal-title fs-5">Votre commentaire</h1>
@@ -154,7 +148,6 @@
                                                 <div class="card-body">
                                                     <div class="flex-start">
                                                         <div>
-                                                            <h6 class="fw-bold mb-1">Lara Stewart</h6>
                                                             <div class="d-flex align-items-center mb-3">
                                                                 <p class="mb-0">13 Mai 2025 </p>
                                                             </div>
@@ -171,7 +164,6 @@
                                                 <div class="card-body p-4">
                                                     <div class="d-flex flex-start">
                                                         <div>
-                                                            <h6 class="fw-bold mb-1">Lara Stewart</h6>
                                                             <div class="d-flex align-items-center mb-3">
                                                                 <p class="mb-0">13 Mai 2025 </p>
                                                             </div>
@@ -187,6 +179,7 @@
                                 </div>
                             </div>
                         </div>
+                        @* Fin de la modal d'édition d'une tâche *@
                     </ul>
 					<h4 class="mt-4">Tâches terminées</h4>
                     <ul class="list-group">
@@ -227,6 +220,50 @@
         </div>
     </div>
 </div>
+
+@* Modal d'ajout d'une tâche *@
+<div class="modal fade" id="addModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalCenterTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel">Ajouter une tâche</h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+        </button>
+      </div>
+ 
+      <div class="card-body">
+            <div class="form-group">
+                <label for="taskTitle">Titre de la tâche:</label>
+                @* POINTS IMPORTANTS: 
+                1. @bind pour la liaison de données bidirectionnelle
+                2. @bind:event="oninput" pour mettre à jour en temps réel
+                3. @onkeydown pour capturer les événements clavier (ici pour permettre de valider avec Entrée)
+                *@
+                <input id="taskTitle" class="form-control" @bind="newTaskTitle" @bind:event="oninput" @onkeydown="@HandleKeyDown" />
+            </div>
+
+            <div class="form-group mt-3">
+                <label for="taskPriority">Priorité:</label>
+                @* Exemple de liaison sur un élément select avec plusieurs options *@
+                <select id="taskPriority" class="form-select" @bind="newTaskPriority">
+                    <option value="Basse">Basse</option>
+                    <option value="Normale">Normale</option>
+                    <option value="Haute">Haute</option>
+                </select>
+            </div>
+            <div class="form-group mt-3">
+                <label for="taskDate">Date d'échéance:</label>
+                <input id="taskDate" type="date" class="form-control" @bind="newTaskDate" />
+            </div>
+        </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-primary" @onclick="AddTask" diasbled="@(string.IsNullOrWhiteSpace(newTaskTitle))" data-bs-dismiss="modal">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 @code {
     // Collection des tâches - c'est l'état principal du composant
@@ -355,4 +392,5 @@
         public DateTime CreatedAt { get; set; }
 		public DateTime endDate { get; set; } 
     }
+    
 }
