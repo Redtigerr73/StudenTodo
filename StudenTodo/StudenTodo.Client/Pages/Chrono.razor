@@ -1,0 +1,274 @@
+@page "/chrono"
+@using StudenTodo.Client.Models
+@inject IJSRuntime JS
+@using System.Text.Json
+@implements IDisposable
+@rendermode InteractiveWebAssembly
+
+<!-- ================== CHRONOMÈTRE D'ÉTUDE ================== -->
+<h3>⏱️ Chronomètre d'étude</h3>
+<p class="fs-4">@elapsedTime.ToString(@"hh\:mm\:ss")</p>
+
+<!-- Contrôles de base du chrono -->
+<div class="mb-3">
+    <button class="btn btn-primary me-2" @onclick="StartTimer" disabled="@isRunning">Démarrer</button>
+    <button class="btn btn-warning me-2" @onclick="PauseTimer" disabled="@(isRunning == false)">Pause</button>
+    <button class="btn btn-secondary me-2" @onclick="ResetTimer">Réinitialiser</button>
+    <button class="btn btn-success" @onclick="SauvegarderSession">Sauvegarder</button>
+</div>
+
+<!-- Résumé hebdomadaire des sessions -->
+@if (sessions.Any(s => EstDansCetteSemaine(s.Date)))
+{
+    <h4>🗓️ Résumé de la semaine</h4>
+    <ul>
+        @foreach (var group in sessions
+            .Where(s => EstDansCetteSemaine(s.Date))
+            .GroupBy(s => s.Date.Date)
+            .OrderByDescending(g => g.Key))
+        {
+            <li>
+                <strong>@group.Key.ToString("dddd dd MMMM")</strong> :
+                @group.Select(s => s.Duree).Aggregate(TimeSpan.Zero, (acc, dur) => acc + dur).ToString(@"hh\:mm\:ss")
+            </li>
+        }
+    </ul>
+    <p><strong>Total hebdomadaire :</strong> @CalculerTotalSemaine().ToString(@"hh\:mm\:ss")</p>
+}
+else
+{
+    <p>Aucune session enregistrée cette semaine.</p>
+}
+
+<!-- Input pour le rappel automatique -->
+<input type="number" min="1" class="form-control mb-2" placeholder="Temps de rappel (minutes)" @bind="rappelMinutes" />
+
+<!-- ================== POMODORO MODE ================== -->
+<h4 class="mt-4">🍅 Mode Pomodoro</h4>
+
+<!-- Contrôles Pomodoro -->
+<div class="mb-3">
+    <button class="btn btn-outline-primary me-2" @onclick="StartPomodoro" disabled="@pomodoroRunning">Démarrer cycle</button>
+    <button class="btn btn-outline-warning me-2" @onclick="PasserAPause" disabled="@(!pomodoroRunning || currentPhase == PomodoroPhase.Pause)">Passer à la pause</button>
+    <button class="btn btn-outline-secondary" @onclick="StopPomodoro" disabled="!pomodoroRunning">Arrêter</button>
+</div>
+
+<!-- Affichage de l'état courant -->
+<p class="fst-italic">
+    Phase actuelle : <strong>@currentPhase.ToString()</strong><br />
+    Temps restant : @pomodoroCountdown.ToString(@"mm\:ss")
+</p>
+
+<!-- Objectif hebdomadaire modifiable -->
+<p>
+    <strong>🎯 Objectif hebdo :</strong>
+    <input type="number" min="1" class="form-control d-inline-block w-auto me-2" style="max-width: 100px"
+           @bind="objectifMinutes" />
+    minutes
+</p>
+
+<!-- Barre de progression -->
+<p class="mb-1">
+    <span class="text-danger">🔴</span>
+    @minutesActuelles / @objectifMinutes min
+    (<strong>@(objectifMinutes > 0 ? (minutesActuelles * 100 / objectifMinutes) : 0)%</strong> atteint)
+</p>
+<progress class="w-100" value="@minutesActuelles" max="@objectifMinutes"></progress>
+
+<!-- Export CSV -->
+<button class="btn btn-outline-dark mt-3" @onclick="ExporterEnCSV">📤 Export CSV</button>
+
+<!-- Citation de motivation -->
+@if (!string.IsNullOrWhiteSpace(citation))
+{
+    <blockquote class="fst-italic text-muted mt-3">« @citation »</blockquote>
+}
+
+<!-- ================== HISTORIQUE MENSUEL ================== -->
+<h4 class="mt-5">📅 Historique du mois</h4>
+<table class="table table-sm table-striped w-auto">
+    <thead>
+        <tr>
+            <th>📅 Jour</th>
+            <th>⏱️ Temps total</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var group in sessions
+            .Where(s => s.Date.Month == DateTime.Now.Month && s.Date.Year == DateTime.Now.Year)
+            .GroupBy(s => s.Date.Date)
+            .OrderByDescending(g => g.Key))
+        {
+            <tr>
+                <td>@group.Key.ToString("dddd dd MMMM")</td>
+                <td>@group.Select(s => s.Duree).Aggregate(TimeSpan.Zero, (acc, dur) => acc + dur).ToString(@"hh\:mm\:ss")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    // État chrono simple
+    private TimeSpan elapsedTime = TimeSpan.Zero;
+    private bool isRunning = false;
+    private System.Timers.Timer? timer;
+
+    // Sessions d'étude enregistrées
+    private List<EtudeSession> sessions = new();
+
+    // Rappel utilisateur après X minutes
+    private int rappelMinutes = 25;
+
+    // Objectif modifiable et stocké en local
+    private int _objectifMinutes = 600;
+    private int objectifMinutes {
+        get => _objectifMinutes;
+        set {
+            _objectifMinutes = value;
+            JS.InvokeVoidAsync("localStorage.setItem", "objectifMinutes", value.ToString());
+        }
+    }
+
+    // Calcul des minutes atteintes cette semaine
+    private int minutesActuelles => (int)Math.Round(sessions
+        .Where(s => EstDansCetteSemaine(s.Date))
+        .Sum(s => s.Duree.TotalMinutes));
+
+    // Citations de motivation
+    private string[] citations = {
+        "Ce n’est pas la durée, mais l’intensité qui compte.",
+        "Tu es plus proche du but que tu ne le crois.",
+        "Répète, encore et encore. C’est là que la magie opère."
+    };
+    private string citation = "";
+
+    // État Pomodoro
+    private enum PomodoroPhase { Travail, Pause }
+    private PomodoroPhase currentPhase = PomodoroPhase.Travail;
+    private bool pomodoroRunning = false;
+    private TimeSpan pomodoroCountdown = TimeSpan.Zero;
+    private System.Timers.Timer? pomodoroTimer;
+
+    // Durées de travail et pause en mode Pomodoro
+    private readonly TimeSpan dureeTravail = TimeSpan.FromMinutes(25);
+    private readonly TimeSpan dureePause = TimeSpan.FromMinutes(5);
+
+    // ==================== Méthodes ====================
+
+    void StartTimer() {
+        citation = citations[Random.Shared.Next(citations.Length)];
+        isRunning = true;
+        if (rappelMinutes > 0)
+            JS.InvokeVoidAsync("startRappelTimer", rappelMinutes);
+    }
+
+    void PauseTimer() {
+        isRunning = false;
+        JS.InvokeVoidAsync("clearRappelTimer");
+    }
+
+    void ResetTimer() {
+        isRunning = false;
+        elapsedTime = TimeSpan.Zero;
+        JS.InvokeVoidAsync("clearRappelTimer");
+    }
+
+    async Task SauvegarderSession() {
+        if (elapsedTime > TimeSpan.Zero) {
+            sessions.Add(new EtudeSession {
+                Date = DateTime.Now,
+                Duree = elapsedTime
+            });
+            await JS.InvokeVoidAsync("saveSessions", "etudeSessions", JsonSerializer.Serialize(sessions));
+            ResetTimer();
+        }
+    }
+
+    async Task ExporterEnCSV() {
+        var csv = "Date,Durée (min)\n" +
+                  string.Join("\n", sessions.Select(s => $"{s.Date:yyyy-MM-dd},{s.Duree.TotalMinutes:F0}"));
+        await JS.InvokeVoidAsync("saveAsFile", "historique.csv", csv);
+    }
+
+    void StartPomodoro() {
+        currentPhase = PomodoroPhase.Travail;
+        pomodoroCountdown = dureeTravail;
+        pomodoroRunning = true;
+        citation = citations[Random.Shared.Next(citations.Length)];
+
+        pomodoroTimer = new System.Timers.Timer(1000);
+        pomodoroTimer.Elapsed += async (_, _) => {
+            if (pomodoroCountdown > TimeSpan.Zero)
+                pomodoroCountdown = pomodoroCountdown.Subtract(TimeSpan.FromSeconds(1));
+            else
+                await InvokeAsync(SwitchPomodoroPhase);
+            await InvokeAsync(StateHasChanged);
+        };
+        pomodoroTimer.Start();
+    }
+
+    async Task SwitchPomodoroPhase() {
+        citation = citations[Random.Shared.Next(citations.Length)];
+        if (currentPhase == PomodoroPhase.Travail) {
+            currentPhase = PomodoroPhase.Pause;
+            pomodoroCountdown = dureePause;
+            await JS.InvokeVoidAsync("alert", $"✅ Fin du travail ! Pause !\n\n« {citation} »");
+        } else {
+            currentPhase = PomodoroPhase.Travail;
+            pomodoroCountdown = dureeTravail;
+            await JS.InvokeVoidAsync("alert", $"🔔 Pause terminée, au boulot !\n\n« {citation} »");
+        }
+    }
+
+    void PasserAPause() {
+        currentPhase = PomodoroPhase.Pause;
+        pomodoroCountdown = dureePause;
+    }
+
+    void StopPomodoro() {
+        pomodoroRunning = false;
+        pomodoroTimer?.Stop();
+        pomodoroTimer?.Dispose();
+        pomodoroTimer = null;
+        pomodoroCountdown = TimeSpan.Zero;
+    }
+
+    // Initialisation Blazor
+    protected override void OnInitialized() {
+        timer = new System.Timers.Timer(1000);
+        timer.Elapsed += async (_, _) => {
+            if (isRunning) {
+                elapsedTime = elapsedTime.Add(TimeSpan.FromSeconds(1));
+                await InvokeAsync(StateHasChanged);
+            }
+        };
+        timer.Start();
+    }
+
+    // Chargement sessions & objectif depuis localStorage
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            var json = await JS.InvokeAsync<string>("loadSessions", "etudeSessions");
+            if (!string.IsNullOrWhiteSpace(json)) {
+                var result = JsonSerializer.Deserialize<List<EtudeSession>>(json);
+                if (result is not null) sessions = result;
+            }
+            var saved = await JS.InvokeAsync<string>("localStorage.getItem", "objectifMinutes");
+            if (int.TryParse(saved, out int val)) objectifMinutes = val;
+        }
+    }
+
+    bool EstDansCetteSemaine(DateTime date) {
+        var now = DateTime.Now;
+        int diff = (7 + (int)now.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+        var lundi = now.Date.AddDays(-diff);
+        var dimanche = lundi.AddDays(7);
+        return date.Date >= lundi && date.Date < dimanche;
+    }
+
+    TimeSpan CalculerTotalSemaine() =>
+        sessions.Where(s => EstDansCetteSemaine(s.Date)).Aggregate(TimeSpan.Zero, (acc, s) => acc + s.Duree);
+
+    public void Dispose() => timer?.Dispose();
+}
+
