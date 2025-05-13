@@ -1,0 +1,155 @@
+﻿@* -------------------------------------------------------------- *@
+@* Page Chronos.razor : composant pour afficher et gérer un   *@
+@* chronomètre d'étude avec notifications et sessions enregistrées *@
+@* -------------------------------------------------------------- *@
+
+@* Route de la page *@
+@page "/chronos"  
+@using Microsoft.AspNetCore.Authorization  @* Namespace pour [Authorize] *@
+@* Nécessite que l'utilisateur soit authentifié *@
+@attribute [Authorize]  
+
+@* Rendu côté serveur interactif *@
+@rendermode InteractiveServer  
+
+ @* Injection pour appeler du JS *@
+@inject IJSRuntime JS            
+
+
+@* -------------------------------------------------------------- *@
+@* Styles CSS spécifiques à ce composant                     *@
+@* Vous pouvez aussi créer Chronos.razor.css pour CSS isolé   *@
+@* -------------------------------------------------------------- *@
+<style>
+    .chronos-container {
+        max-width: 400px;
+        margin: 2rem auto;
+        padding: 1rem;
+        border: 1px solid #ccc;
+        border-radius: 0.5rem;
+        background-color: #f9f9f9;
+        text-align: center;
+    }
+    .chronos-title {
+        font-size: 2rem;
+        color: #03173d;
+        margin-bottom: 1rem;
+    }
+    .chronos-time {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .chronos-button {
+        padding: 0.5rem 1rem;
+        font-size: 1rem;
+        margin-top: 1rem;
+    }
+    .sessions-list {
+        margin-top: 2rem;
+        text-align: left;
+    }
+    .session-item {
+        margin-bottom: 0.5rem;
+    }
+</style>
+
+<PageTitle>Chronos</PageTitle>  @* Titre de l'onglet navigateur *@
+
+<div class="chronos-container">
+    <h1 class="chronos-title">Chronomètre d'étude :</h1>
+
+    <p class="chronos-time">Temps écoulé : @ElapsedMinutes minutes @ElapsedSeconds secondes</p>
+
+    @if (!isRunning)
+    {
+        <button class="chronos-button btn btn-success" @onclick="Start">Démarrer</button>
+    }
+    else
+    {
+        <button class="chronos-button btn btn-danger" @onclick="Stop">Arrêter et Enregistrer</button>
+    }
+
+    @* Affichage des sessions enregistrées *@
+    @if (sessions.Any())
+    {
+        <div class="sessions-list">
+            <h2>Sessions du jour :</h2>
+            <ul>
+                @foreach (var s in sessions)
+                {
+                    <li class="session-item">@s.Hours h @s.Minutes m @s.Seconds s</li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@code {
+    // 1. Champs et états internes
+    private System.Timers.Timer? _timer;                // Timer .NET pour la mise à jour
+    private int totalSeconds;                            // Compteur total de secondes
+    private bool isRunning;                              // Indique si le chrono est actif
+    private bool _notificationPermissionRequested;       // Flag pour demander la permission une seule fois
+    private List<TimeSpan> sessions = new();             // Liste des sessions d'étude enregistrées
+
+    // 2. Propriétés calculées pour l'affichage
+    private int ElapsedMinutes => totalSeconds / 60;     // Minutes écoulées
+    private int ElapsedSeconds => totalSeconds % 60;     // Secondes restantes
+
+    // 3. Cycle de vie : Post-rendering
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_notificationPermissionRequested)
+        {
+            _notificationPermissionRequested = true;  // Empêche de redemander après le premier rendu
+            await JS.InvokeAsync<string>("eval", "Notification.requestPermission()");
+        }
+    }
+
+    // 4. Démarrage du chronomètre
+    private void Start()
+    {
+        if (isRunning) return;          // Si déjà lancé, ne fait rien
+
+        totalSeconds = 0;               // Réinitialise le compteur
+        _timer = new System.Timers.Timer(1000);  // Tick toutes les 1000ms (1s)
+        _timer.Elapsed += async (_, __) =>
+        {
+            totalSeconds++;             // Incrémente le compteur
+            await InvokeAsync(StateHasChanged);  // Rafraîchit l'affichage
+
+            // Notification toutes les 5 minutes
+            if (totalSeconds % (5 * 60) == 0)
+            {
+                await InvokeAsync(async () =>
+                {
+                    var message = $"Tu as étudié pendant {ElapsedMinutes} minute(s) !";
+                    var script = $"(function() {{ if (Notification.permission === 'granted') new Notification('Bravo !', {{ body: '{message}' }}); }})();";
+                    await JS.InvokeVoidAsync("eval", script);
+                });
+            }
+        };
+        _timer.Start();   // Démarre le timer
+        isRunning = true; // Met à jour l'état
+    }
+
+    // 5. Arrêt et enregistrement de la session
+    private void Stop()
+    {
+        if (!isRunning) return;
+
+        _timer?.Stop();                  // Stoppe le timer
+        _timer?.Dispose();               // Libère les ressources
+        isRunning = false;              // Met à jour l'état
+
+        // Enregistre la session actuelle
+        var session = TimeSpan.FromSeconds(totalSeconds);
+        sessions.Add(session);
+    }
+
+    // 6. Nettoyage : Dispose appelé à la destruction du composant
+    public void Dispose()
+    {
+        _timer?.Dispose();
+    }
+}
