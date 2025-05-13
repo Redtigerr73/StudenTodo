@@ -1,0 +1,135 @@
+@page "/calendrier"
+@* Définit la route URL pour accéder à ce composant *@
+@rendermode InteractiveServer
+@* IMPORTANT: Définit que ce composant utilise le mode de rendu interactif côté serveur dans .NET 8 *@
+@using Microsoft.AspNetCore.Components.Web
+@* Nous n'avons plus besoin d'implémenter IDisposable puisque nous n'utilisons plus de timer *@
+@using System.Globalization
+@using System.Text.Json
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Calendrier des taches</PageTitle>
+
+<h1>Calendrier</h1>
+<section id="calendrier">
+<div class="calendar">
+    <div class="calendar-controls">
+        <button @onclick="PreviousMonth">←</button>
+        <h3>@_currentMonth.ToString("MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"))</h3>
+        <button @onclick="NextMonth">→</button>
+    </div>
+
+    <div class="calendar-grid">
+        @foreach (var day in _daysOfWeek)
+        {
+            <div class="calendar-header">@day</div>
+        }
+
+        @for (int i = 0; i < _firstDayOffset; i++)
+        {
+            <div class="calendar-cell empty"></div>
+        }
+
+        @for (int day = 1; day <= DateTime.DaysInMonth(_currentMonth.Year, _currentMonth.Month); day++)
+        {
+            var date = new DateTime(_currentMonth.Year, _currentMonth.Month, day);
+            <div class="calendar-cell" @onclick="@(() => SelectDate(date))">
+                <strong>@day</strong>
+                @if (_events.ContainsKey(date.Date))
+                {
+                    foreach (var ev in _events[date.Date])
+                    {
+                        <div class="event">@ev</div>
+                    }
+                }
+            </div>
+        }
+    </div>
+
+    @if (_selectedDate != null)
+    {
+        <div class="event-editor">
+            <h4>Ajouter un événement pour le @(_selectedDate?.ToString("dd MMMM", CultureInfo.GetCultureInfo("fr-FR")))</h4>
+            <input @bind="_newEvent" placeholder="Nom de l’événement" />
+            <button @onclick="AddEvent">Ajouter</button>
+        </div>
+    }
+</div>
+</section>
+@code {
+    private DateTime _currentMonth = DateTime.Today;
+    private DateTime? _selectedDate = null;
+    private string _newEvent = string.Empty;
+
+    private readonly string[] _daysOfWeek = new[] { "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim" };
+    private int _firstDayOffset => ((int)(new DateTime(_currentMonth.Year, _currentMonth.Month, 1).DayOfWeek) + 6) % 7;
+
+    private Dictionary<DateTime, List<string>> _events = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadTasksFromLocalStorage();
+        }
+    }
+
+    private async Task LoadTasksFromLocalStorage()
+    {
+        var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "studentodo_tasks");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var tasks = JsonSerializer.Deserialize<List<TodoItem>>(json) ?? new List<TodoItem>();
+            foreach (var task in tasks)
+            {
+                var date = task.endDate.Date;
+                if (!_events.ContainsKey(date))
+                {
+                    _events[date] = new List<string>();
+                }
+                _events[date].Add(task.Title);
+            }
+            StateHasChanged();
+        }
+    }
+
+    private void PreviousMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(-1);
+        _selectedDate = null;
+    }
+
+    private void NextMonth()
+    {
+        _currentMonth = _currentMonth.AddMonths(1);
+        _selectedDate = null;
+    }
+
+    private void SelectDate(DateTime date)
+    {
+        _selectedDate = date;
+        _newEvent = string.Empty;
+    }
+
+    private void AddEvent()
+    {
+        if (_selectedDate != null && !string.IsNullOrWhiteSpace(_newEvent))
+        {
+            var date = _selectedDate.Value.Date;
+            if (!_events.ContainsKey(date))
+                _events[date] = new List<string>();
+            _events[date].Add(_newEvent);
+            _newEvent = string.Empty;
+        }
+    }
+
+    private class TodoItem
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = "";
+        public string Priority { get; set; } = "Normale";
+        public bool IsCompleted { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime endDate { get; set; }
+    }
+}
