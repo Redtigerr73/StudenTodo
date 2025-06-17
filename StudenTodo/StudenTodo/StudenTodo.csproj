@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+	  <PackageReference Include="MailKit" Version="4.12.1" />
+	  <PackageReference Include="MimeKit" Version="4.12.0" />
 	  <ProjectReference Include="..\StudenTodo.Client\StudenTodo.Client.csproj" />
 	  <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="8.0.13" />
 	  <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="8.0.13" />
